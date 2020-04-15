@@ -1,0 +1,90 @@
+import arcpy
+import pandas as pd
+
+# datos de usuario.
+# modelo de levacion digital.
+Dem = r'D:\arcpy\EJERCISIO\dem'
+# un punto tipo -shp que sera el punto donde se delimitara la cuenca.
+Point = r'D:\arcpy\EJERCISIO\POINT.shp'
+# agregamos usos del suelo.
+Usos = r'D:\arcpy\EJERCISIO\Cobertura.shp'
+# ruta de la carpeta de guardado de archivos a generar
+RUTC = r'D:\arcpy'
+# Se le asigna un nombre a la geodatabase
+NAMEBA1 = 'Ejercisio.gdb'
+# la geodatabse por fuera de la funcion
+# ARTIFICIO PARA LA RUTA
+B = '\\'
+# se construye la ruta de guardo del proyecto
+RUT = RUTC + B + NAMEBA1 + '/'
+# SE CREA LA RUTA DEL WORKSSPACE
+RUTW = RUTC + B + NAMEBA1
+# se crea la geodatabase del proyecto
+arcpy.management.CreateFileGDB(RUTC, NAMEBA1)
+# SE DECLRA UN LUGAR DE TRABAJO.
+WKS = arcpy.env.workspace = RUTW
+# se declaran las salidas del codigo.
+AUT1 = RUT + 'Cuenca'
+AUT2 = RUT + 'UsosCuenca'
+# se ejecuta una secuencia para delimitar una cuenca hidrografica
+# se corrige elmodelo de elevación digital.
+FILLMDE = arcpy.sa.Fill(Dem)
+# se realizan las direcciones de flujo.
+FDRMDE = arcpy.sa.FlowDirection(FILLMDE, 'NORMAL')
+# se realizan los flujos acumulados.
+FACMDE = arcpy.sa.FlowAccumulation(FDRMDE)
+# se agrega la información de altura a el punto de delimitación.
+arcpy.AddSurfaceInformation_3d(Point, FILLMDE, "Z")
+# se delimita la cuenca
+BASAIN1 = arcpy.sa.Watershed(FDRMDE, Point, "Z")
+# se convierte a poligono.
+BASAINPO1 = arcpy.conversion.RasterToPolygon(BASAIN1, AUT1, "SIMPLIFY")
+# elimino ariables temporales
+del FILLMDE
+del FDRMDE
+del FACMDE
+del BASAIN1
+# recorta los usos para el area de la cuenca
+lisI = [Usos, BASAINPO1]
+UsosBa = arcpy.analysis.Intersect(lisI, AUT2)
+# se calcula el area de los nuevas coberturas
+arcpy.AddGeometryAttributes_management(UsosBa, "AREA_GEODESIC")
+# se crea un cursos para acceder los datos de la tabla de atributos.
+CUs = arcpy.da.UpdateCursor(UsosBa, ['OBJECTID', 'NIVEL_3', 'AREA_GEO'])
+# declaro una lista vacia para almecenar los datos del cursor
+LUsos = []
+# se recorre el cursos para sacar los datos de este.
+for theju in CUs:
+    LUsos.append(theju)
+# lista para alamecenar el nombre de los usos que existen en la cuenca.
+Lisus = []
+for theju in LUsos:
+    if theju[1] not in Lisus:
+        Lisus.append(theju[1])
+# se hallan las areas por usos.
+AreaUsos = []
+for theju in range(len(Lisus)):
+    Schusos = Lisus[theju]
+    AreaU = []
+    AreaUsos.append(AreaU)
+    for ju in LUsos:
+        if ju[1] == Schusos:
+            AreaU.append(ju[2])
+# se suman las areas totales
+AreaUsosT = []
+for theju in range(len(Lisus)):
+    sum(AreaUsos[theju])
+# hallo el area de la cuenca
+# creo el cursor para acceder a el objeto
+CUACb = arcpy.da.UpdateCursor(BASAINPO1, 'Shape_Area')
+AreaB = []
+for theju in CUACb:
+    AreaB.append(theju)
+# hallo el porcentaje de cada cobertura
+Porcentaje = []
+for theju in AreaUsosT:
+    Po = theju/AreaB[0]
+
+Dataframe = {'Usos': Lisus, 'Area': AreaUsosT, 'Porcentaje': Porcentaje}
+df = pd.DataFrame(Dataframe)
+df.to_csv(RUT + 'Resultados')
