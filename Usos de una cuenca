@@ -50,7 +50,7 @@ UsosBa = arcpy.analysis.Intersect(lisI, AUT2)
 # se calcula el area de los nuevas coberturas
 arcpy.AddGeometryAttributes_management(UsosBa, "AREA_GEODESIC")
 # se crea un cursos para acceder los datos de la tabla de atributos.
-CUs = arcpy.da.UpdateCursor(UsosBa, ['OBJECTID', 'NIVEL_3', 'AREA_GEO'])
+CUs = arcpy.da.UpdateCursor(UsosBa, ['OBJECTID', 'NIVEL_1', 'AREA_GEO'])
 # declaro una lista vacia para almecenar los datos del cursor
 LUsos = []
 # se recorre el cursos para sacar los datos de este.
@@ -60,7 +60,8 @@ for theju in CUs:
 Lisus = []
 for theju in LUsos:
     if theju[1] not in Lisus:
-        Lisus.append(theju[1])
+        SU = str(theju[1])
+        Lisus.append(SU)
 # se hallan las areas por usos.
 AreaUsos = []
 for theju in range(len(Lisus)):
@@ -73,18 +74,19 @@ for theju in range(len(Lisus)):
 # se suman las areas totales
 AreaUsosT = []
 for theju in range(len(Lisus)):
-    sum(AreaUsos[theju])
+    A = sum(AreaUsos[theju])
+    AreaUsosT.append(A)
 # hallo el area de la cuenca
 # creo el cursor para acceder a el objeto
 CUACb = arcpy.da.UpdateCursor(BASAINPO1, 'Shape_Area')
-AreaB = []
+AreaB = 0
 for theju in CUACb:
-    AreaB.append(theju)
+    AreaB = theju
 # hallo el porcentaje de cada cobertura
 Porcentaje = []
 for theju in AreaUsosT:
     Po = theju/AreaB[0]
-
+    Porcentaje.append(Po)
 Dataframe = {'Usos': Lisus, 'Area': AreaUsosT, 'Porcentaje': Porcentaje}
 df = pd.DataFrame(Dataframe)
 df.to_csv(RUT + 'Resultados')
